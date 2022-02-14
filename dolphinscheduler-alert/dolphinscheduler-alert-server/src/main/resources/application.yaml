@@ -20,6 +20,9 @@ spring:
     name: alert-server
   main:
     banner-mode: off
+  jackson:
+    time-zone: GMT+8
+    date-format: "yyyy-MM-dd HH:mm:ss"
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/dolphinscheduler

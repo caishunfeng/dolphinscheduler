@@ -15,10 +15,13 @@
 # limitations under the License.
 #
 spring:
-  main:
-    banner-mode: off
   application:
     name: master-server
+  main:
+    banner-mode: off
+  jackson:
+    time-zone: GMT+8
+    date-format: "yyyy-MM-dd HH:mm:ss"
   cache:
     # default enable cache, you can disable by `type: none`
     type: none
