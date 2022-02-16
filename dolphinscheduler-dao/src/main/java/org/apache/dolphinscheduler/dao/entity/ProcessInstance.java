@@ -31,6 +31,8 @@ import org.apache.commons.lang.StringUtils;
 import java.util.Date;
 import java.util.Objects;
 
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -70,13 +72,13 @@ public class ProcessInstance {
     /**
      * start time
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @JsonFormat(timezone = "GMT+8")
     private Date startTime;
 
     /**
      * end time
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @JsonFormat(timezone = "UTC")
     private Date endTime;
 
     /**
@@ -137,13 +139,11 @@ public class ProcessInstance {
     /**
      * schedule time
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date scheduleTime;
 
     /**
      * command start time
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date commandStartTime;
 
     /**
@@ -252,7 +252,6 @@ public class ProcessInstance {
     /**
      * re-start time
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date restartTime;
 
     public ProcessInstance() {

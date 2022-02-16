@@ -56,7 +56,8 @@ public final class DateUtils {
      * @return local datetime
      */
     private static LocalDateTime date2LocalDateTime(Date date) {
-        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+//        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT+8"));
     }
 
     /**
@@ -66,7 +67,13 @@ public final class DateUtils {
      * @return date
      */
     private static Date localDateTime2Date(LocalDateTime localDateTime) {
+//        Instant instant = localDateTime.atZone(ZoneId.of("UTC")).toInstant();
         Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
+        return Date.from(instant);
+    }
+
+    private static Date localDateTime2DateInThread(LocalDateTime localDateTime) {
+        Instant instant = localDateTime.atZone(ZoneId.of("")).toInstant();
         return Date.from(instant);
     }
 

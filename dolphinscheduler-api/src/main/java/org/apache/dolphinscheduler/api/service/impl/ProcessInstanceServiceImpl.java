@@ -84,15 +84,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.i18n.LocaleContext;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.i18n.LocaleContextResolver;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * process instance service impl
@@ -239,6 +245,9 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
     public Result queryProcessInstanceList(User loginUser, long projectCode, long processDefineCode, String startDate, String endDate, String searchVal, String executorName,
                                            ExecutionStatus stateType, String host, Integer pageNo, Integer pageSize) {
 
+        LocaleContextHolder.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+        System.out.println("LocaleContextHolder.getTimeZone:" + LocaleContextHolder.getTimeZone());
+
         Result result = new Result();
         Project project = projectMapper.queryByCode(projectCode);
         //check user access for project
@@ -264,6 +273,8 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
         Date start = (Date) checkAndParseDateResult.get(Constants.START_TIME);
         Date end = (Date) checkAndParseDateResult.get(Constants.END_TIME);
 
+        System.out.printf("checkAndParseDateParameters %s %s %d %d \n",startDate, endDate, start.getTime(), end.getTime());
+
         Page<ProcessInstance> page = new Page<>(pageNo, pageSize);
         PageInfo<ProcessInstance> pageInfo = new PageInfo<>(pageNo, pageSize);
         int executorId = usersService.getUserIdByName(executorName);
@@ -283,6 +294,7 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
         }
 
         for (ProcessInstance processInstance : processInstances) {
+            System.out.printf("processInstance %d, %d \n", processInstance.getStartTime().getTime(), processInstance.getEndTime().getTime());
             processInstance.setDuration(DateUtils.format2Duration(processInstance.getStartTime(), processInstance.getEndTime()));
             User executor = idToUserMap.get(processInstance.getExecutorId());
             if (null != executor) {

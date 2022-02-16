@@ -21,7 +21,7 @@ spring:
   main:
     banner-mode: off
   jackson:
-    time-zone: GMT+8
+    time-zone: UTC
     date-format: "yyyy-MM-dd HH:mm:ss"
   cache:
     # default enable cache, you can disable by `type: none`

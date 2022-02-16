@@ -18,6 +18,7 @@
 package org.apache.dolphinscheduler.api.interceptor;
 
 import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
 
 import java.util.Locale;
 
@@ -28,7 +29,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.springframework.web.servlet.i18n.CookieLocaleResolver;
 import org.springframework.web.util.WebUtils;
 
 public class LocaleChangeInterceptor extends HandlerInterceptorAdapter {
