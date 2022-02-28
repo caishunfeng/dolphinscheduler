@@ -48,22 +48,19 @@ public final class ProcessUtils {
     /**
      * kill tasks according to different task types.
      */
-    public static void kill(TaskRequest request) {
+    public static void kill(int processId, String tenantCode) {
+        if (processId == 0) {
+            logger.error("process kill failed, process id is 0");
+            return;
+        }
         try {
-            int processId = request.getProcessId();
-            if (processId == 0) {
-                logger.error("process kill failed, process id :{}, task id:{}",
-                        processId, request.getTaskInstanceId());
-                return;
-            }
-
             String cmd = String.format("kill -9 %s", getPidsStr(processId));
-            cmd = OSUtils.getSudoCmd(request.getTenantCode(), cmd);
-            logger.info("process id:{}, cmd:{}", processId, cmd);
-
+            cmd = OSUtils.getSudoCmd(tenantCode, cmd);
             OSUtils.exeCmd(cmd);
+
+            logger.info("kill process success, process id:{}, cmd:{}", processId, cmd);
         } catch (Exception e) {
-            logger.error("kill task failed", e);
+            logger.error("kill process failed", e);
         }
     }
 

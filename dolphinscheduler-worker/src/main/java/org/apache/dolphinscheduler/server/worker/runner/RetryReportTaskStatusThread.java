@@ -18,17 +18,18 @@
 package org.apache.dolphinscheduler.server.worker.runner;
 
 import org.apache.dolphinscheduler.common.thread.Stopper;
-
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
-import org.apache.dolphinscheduler.remote.command.Command;
-import org.apache.dolphinscheduler.server.worker.cache.ResponseCache;
+import org.apache.dolphinscheduler.server.worker.cache.TaskExecuteThreadCacheManager;
 import org.apache.dolphinscheduler.server.worker.processor.TaskCallbackService;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import java.util.Collection;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * Retry Report Task Status Thread
@@ -41,48 +42,39 @@ public class RetryReportTaskStatusThread implements Runnable {
     /**
      * every 5 minutes
      */
-    private static long RETRY_REPORT_TASK_STATUS_INTERVAL = 5 * 60 * 1000L;
+    private static final long RETRY_REPORT_TASK_STATUS_INTERVAL = 5 * 60 * 1000L;
+
+    @Autowired
+    private TaskExecuteThreadCacheManager taskExecuteThreadCacheManager;
 
     @Autowired
     private TaskCallbackService taskCallbackService;
 
-    public void start(){
-        Thread thread = new Thread(this,"RetryReportTaskStatusThread");
+    public void start() {
+        Thread thread = new Thread(this, "RetryReportTaskStatusThread");
         thread.setDaemon(true);
         thread.start();
     }
 
     /**
-     * retry ack/response
+     * retry task feedback
      */
     @Override
     public void run() {
-        ResponseCache instance = ResponseCache.get();
-
-        while (Stopper.isRunning()){
+        while (Stopper.isRunning()) {
 
             // sleep 5 minutes
             ThreadUtils.sleep(RETRY_REPORT_TASK_STATUS_INTERVAL);
 
             try {
-                if (!instance.getAckCache().isEmpty()){
-                    Map<Integer,Command> ackCache =  instance.getAckCache();
-                    for (Map.Entry<Integer, Command> entry : ackCache.entrySet()){
-                        Integer taskInstanceId = entry.getKey();
-                        Command ackCommand = entry.getValue();
-                        taskCallbackService.sendAck(taskInstanceId,ackCommand);
-                    }
+                Collection<TaskExecuteThread> taskExecuteThreads = taskExecuteThreadCacheManager.getAll();
+                if (CollectionUtils.isEmpty(taskExecuteThreads)) {
+                    return;
                 }
-
-                if (!instance.getResponseCache().isEmpty()){
-                    Map<Integer,Command> responseCache =  instance.getResponseCache();
-                    for (Map.Entry<Integer, Command> entry : responseCache.entrySet()){
-                        Integer taskInstanceId = entry.getKey();
-                        Command responseCommand = entry.getValue();
-                        taskCallbackService.sendResult(taskInstanceId,responseCommand);
-                    }
+                for (TaskExecuteThread taskExecuteThread : taskExecuteThreads) {
+                    taskCallbackService.feedback(taskExecuteThread.getTaskExecutionContext());
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 logger.warn("retry report task status error", e);
             }
         }

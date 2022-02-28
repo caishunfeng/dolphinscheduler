@@ -24,6 +24,7 @@ import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.CommandType;
 import org.apache.dolphinscheduler.remote.config.NettyClientConfig;
 import org.apache.dolphinscheduler.remote.processor.NettyRemoteChannel;
+import org.apache.dolphinscheduler.service.queue.entity.TaskExecutionContext;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -161,6 +162,29 @@ public class TaskCallbackService {
                 }
             });
         }
+    }
 
+    /**
+     * feedback task info to master
+     * @param taskExecutionContext
+     */
+    public void feedback(TaskExecutionContext taskExecutionContext) {
+        NettyRemoteChannel nettyRemoteChannel = getRemoteChannel(taskExecutionContext.getTaskInstanceId());
+
+        //TODO
+        Command command = null;
+
+        if (nettyRemoteChannel != null) {
+            nettyRemoteChannel.writeAndFlush(command).addListener(new ChannelFutureListener() {
+
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if (future.isSuccess()) {
+                        // remove(taskInstanceId);
+                        return;
+                    }
+                }
+            });
+        }
     }
 }

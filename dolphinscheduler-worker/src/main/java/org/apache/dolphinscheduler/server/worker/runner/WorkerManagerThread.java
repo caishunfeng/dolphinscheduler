@@ -17,18 +17,13 @@
 
 package org.apache.dolphinscheduler.server.worker.runner;
 
-import org.apache.dolphinscheduler.common.enums.Event;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.thread.ThreadUtils;
-import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.remote.command.TaskExecuteResponseCommand;
-import org.apache.dolphinscheduler.server.worker.cache.ResponseCache;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.processor.TaskCallbackService;
 import org.apache.dolphinscheduler.service.queue.entity.TaskExecutionContext;
-import org.apache.dolphinscheduler.spi.task.TaskExecutionContextCacheManager;
-import org.apache.dolphinscheduler.spi.task.request.TaskRequest;
 
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ExecutorService;
@@ -89,25 +84,21 @@ public class WorkerManagerThread implements Runnable {
      * Kill tasks that have not been executed, like delay task
      * then send Response to Master, update the execution status of task instance
      */
-    public void killTaskBeforeExecuteByInstanceId(Integer taskInstanceId) {
+    public void killTaskBeforeExecuteByInstanceId(TaskExecuteThread taskExecuteThread) {
+        Integer taskInstanceId = taskExecuteThread.getTaskExecutionContext().getTaskInstanceId();
         workerExecuteQueue.stream()
-                          .filter(taskExecuteThread -> taskExecuteThread.getTaskExecutionContext().getTaskInstanceId() == taskInstanceId)
-                          .forEach(workerExecuteQueue::remove);
-        sendTaskKillResponse(taskInstanceId);
+                .filter(t -> t.getTaskExecutionContext().getTaskInstanceId() == taskInstanceId)
+                .forEach(workerExecuteQueue::remove);
+        sendTaskKillResponse(taskExecuteThread);
     }
 
     /**
      * kill task before execute , like delay task
      */
-    private void sendTaskKillResponse(Integer taskInstanceId) {
-        TaskRequest taskRequest = TaskExecutionContextCacheManager.getByTaskInstanceId(taskInstanceId);
-        if (taskRequest == null) {
-            return;
-        }
-        TaskExecutionContext taskExecutionContext = JSONUtils.parseObject(JSONUtils.toJsonString(taskRequest), TaskExecutionContext.class);
+    private void sendTaskKillResponse(TaskExecuteThread taskExecuteThread) {
+        TaskExecutionContext taskExecutionContext = taskExecuteThread.getTaskExecutionContext();
         TaskExecuteResponseCommand responseCommand = new TaskExecuteResponseCommand(taskExecutionContext.getTaskInstanceId(), taskExecutionContext.getProcessInstanceId());
         responseCommand.setStatus(ExecutionStatus.KILL.getCode());
-        ResponseCache.get().cache(taskExecutionContext.getTaskInstanceId(), responseCommand.convert2Command(), Event.RESULT);
         taskCallbackService.sendResult(taskExecutionContext.getTaskInstanceId(), responseCommand.convert2Command());
     }
 
@@ -137,7 +128,7 @@ public class WorkerManagerThread implements Runnable {
                 workerExecService.submit(taskExecuteThread);
             } catch (Exception e) {
                 logger.error("An unexpected interrupt is happened, "
-                    + "the exception will be ignored and this thread will continue to run", e);
+                        + "the exception will be ignored and this thread will continue to run", e);
             }
         }
     }

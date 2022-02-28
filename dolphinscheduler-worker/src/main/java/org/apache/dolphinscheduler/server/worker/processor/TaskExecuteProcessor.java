@@ -35,6 +35,8 @@ import org.apache.dolphinscheduler.remote.processor.NettyRemoteChannel;
 import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
 import org.apache.dolphinscheduler.server.utils.LogUtils;
 import org.apache.dolphinscheduler.server.worker.cache.ResponseCache;
+import org.apache.dolphinscheduler.server.worker.cache.TaskExecuteThreadCacheManager;
+import org.apache.dolphinscheduler.server.worker.cache.TaskExecutionContextCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.plugin.TaskPluginManager;
 import org.apache.dolphinscheduler.server.worker.runner.TaskExecuteThread;
@@ -90,17 +92,8 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
     @Autowired
     private WorkerManagerThread workerManager;
 
-    /**
-     * Pre-cache task to avoid extreme situations when kill task. There is no such task in the cache
-     *
-     * @param taskExecutionContext task
-     */
-    private void setTaskCache(TaskExecutionContext taskExecutionContext) {
-        TaskExecutionContext preTaskCache = new TaskExecutionContext();
-        preTaskCache.setTaskInstanceId(taskExecutionContext.getTaskInstanceId());
-        TaskRequest taskRequest = JSONUtils.parseObject(JSONUtils.toJsonString(taskExecutionContext), TaskRequest.class);
-        TaskExecutionContextCacheManager.cacheTaskExecutionContext(taskRequest);
-    }
+    @Autowired
+    private TaskExecuteThreadCacheManager taskExecuteThreadCacheManager;
 
     @Override
     public void process(Channel channel, Command command) {
@@ -124,8 +117,9 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
             return;
         }
 
-        setTaskCache(taskExecutionContext);
-        // todo custom logger
+        // cache taskExecutionContext and remoteChannel
+        taskCallbackService.addRemoteChannel(taskExecutionContext.getTaskInstanceId(),
+                new NettyRemoteChannel(channel, command.getOpaque()));
 
         taskExecutionContext.setHost(NetUtils.getAddr(workerConfig.getListenPort()));
         taskExecutionContext.setLogPath(LogUtils.getTaskLogPath(taskExecutionContext));
@@ -143,12 +137,10 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
                 }
             } catch (Throwable ex) {
                 logger.error("create execLocalPath: {}", execLocalPath, ex);
+                // todo error finish
                 TaskExecutionContextCacheManager.removeByTaskInstanceId(taskExecutionContext.getTaskInstanceId());
             }
         }
-
-        taskCallbackService.addRemoteChannel(taskExecutionContext.getTaskInstanceId(),
-                new NettyRemoteChannel(channel, command.getOpaque()));
 
         // delay task process
         long remainTime = DateUtils.getRemainTime(taskExecutionContext.getFirstSubmitTime(), taskExecutionContext.getDelayTime() * 60L);
@@ -164,9 +156,15 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
         this.doAck(taskExecutionContext);
 
         // submit task to manager
-        if (!workerManager.offer(new TaskExecuteThread(taskExecutionContext, taskCallbackService, alertClientService, taskPluginManager))) {
+        TaskExecuteThread taskExecuteThread = new TaskExecuteThread(taskExecutionContext, taskCallbackService, alertClientService, taskPluginManager);
+        boolean offer = workerManager.offer(taskExecuteThread);
+        if (!offer) {
             logger.info("submit task to manager error, queue is full, queue size is {}", workerManager.getDelayQueueSize());
+            // todo error finish
+            return;
         }
+
+        taskExecuteThreadCacheManager.cache(taskExecuteThread);
     }
 
     private void doAck(TaskExecutionContext taskExecutionContext) {
