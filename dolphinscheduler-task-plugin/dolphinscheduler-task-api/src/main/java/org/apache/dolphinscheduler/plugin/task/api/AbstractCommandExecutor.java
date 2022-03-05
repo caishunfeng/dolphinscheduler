@@ -18,15 +18,11 @@
 package org.apache.dolphinscheduler.plugin.task.api;
 
 import static org.apache.dolphinscheduler.spi.task.TaskConstants.EXIT_CODE_FAILURE;
-import static org.apache.dolphinscheduler.spi.task.TaskConstants.EXIT_CODE_KILL;
 
 import org.apache.dolphinscheduler.plugin.task.util.OSUtils;
 import org.apache.dolphinscheduler.spi.task.TaskConstants;
-import org.apache.dolphinscheduler.spi.task.TaskExecutionContextCacheManager;
 import org.apache.dolphinscheduler.spi.task.request.TaskRequest;
 import org.apache.dolphinscheduler.spi.utils.StringUtils;
-
-import org.apache.hadoop.hive.common.LogUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -60,7 +56,7 @@ public abstract class AbstractCommandExecutor {
      * rules for extracting application ID
      */
     protected static final Pattern APPLICATION_REGEX = Pattern.compile(TaskConstants.APPLICATION_REGEX);
-    
+
     /**
      * rules for extracting Var Pool
      */
@@ -89,8 +85,8 @@ public abstract class AbstractCommandExecutor {
 
     protected boolean logOutputIsSuccess = false;
 
-    /*
-     * SHELL result string
+    /**
+     * shell result string
      */
     protected String taskResultString;
 
@@ -146,17 +142,15 @@ public abstract class AbstractCommandExecutor {
         printCommand(command);
     }
 
-    public TaskResponse run(String execCommand) throws IOException, InterruptedException {
+    /**
+     * start process
+     * @param execCommand
+     * @return
+     * @throws IOException
+     */
+    public TaskResponse startProcess(String execCommand) throws IOException {
         TaskResponse result = new TaskResponse();
         int taskInstanceId = taskRequest.getTaskInstanceId();
-        if (null == TaskExecutionContextCacheManager.getByTaskInstanceId(taskInstanceId)) {
-            result.setExitStatusCode(EXIT_CODE_KILL);
-            return result;
-        }
-        if (StringUtils.isEmpty(execCommand)) {
-            TaskExecutionContextCacheManager.removeByTaskInstanceId(taskInstanceId);
-            return result;
-        }
 
         String commandFilePath = buildCommandFilePath();
 
@@ -170,20 +164,30 @@ public abstract class AbstractCommandExecutor {
         parseProcessOutput(process);
 
         int processId = getProcessId(process);
+        logger.info("process start, task instance id : {}, process id : {}", taskInstanceId, processId);
 
         result.setProcessId(processId);
 
         // cache processId
         taskRequest.setProcessId(processId);
-        boolean updateTaskExecutionContextStatus = TaskExecutionContextCacheManager.updateTaskExecutionContext(taskRequest);
-        if (Boolean.FALSE.equals(updateTaskExecutionContextStatus)) {
-            ProcessUtils.kill(taskRequest);
-            result.setExitStatusCode(EXIT_CODE_KILL);
-            return result;
-        }
-        // print process id
-        logger.info("process start, process id is: {}", processId);
 
+        // set appIds
+        List<String> appIds = getAppIds(taskRequest.getLogPath());
+        result.setAppIds(String.join(TaskConstants.COMMA, appIds));
+
+        return result;
+    }
+
+    /**
+     * process run and wait for finish
+     * @return
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    public TaskResponse run() throws IOException, InterruptedException {
+        int processId = taskRequest.getProcessId();
+
+        TaskResponse result = new TaskResponse();
         // if timeout occurs, exit directly
         long remainTime = getRemainTime();
 
@@ -202,7 +206,7 @@ public abstract class AbstractCommandExecutor {
         } else {
             logger.error("process has failure , exitStatusCode:{}, processExitValue:{}, ready to kill ...",
                     result.getExitStatusCode(), process.exitValue());
-            ProcessUtils.kill(taskRequest);
+            ProcessUtils.kill(processId, taskRequest.getTenantCode());
             result.setExitStatusCode(EXIT_CODE_FAILURE);
         }
 
@@ -408,13 +412,11 @@ public abstract class AbstractCommandExecutor {
 
         return lineList;
     }
-    
+
     /**
      * find var pool
-     * @param line
-     * @return
      */
-    private String findVarPool(String line){
+    private String findVarPool(String line) {
         Matcher matcher = SETVALUE_REGEX.matcher(line);
         if (matcher.find()) {
             return matcher.group(1);

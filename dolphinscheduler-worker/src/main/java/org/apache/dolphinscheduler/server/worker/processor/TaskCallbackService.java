@@ -19,11 +19,13 @@ package org.apache.dolphinscheduler.server.worker.processor;
 
 import static org.apache.dolphinscheduler.common.Constants.SLEEP_TIME_MILLIS;
 
+import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.remote.NettyRemotingClient;
-import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.CommandType;
+import org.apache.dolphinscheduler.remote.command.TaskExecuteResponseCommand;
 import org.apache.dolphinscheduler.remote.config.NettyClientConfig;
 import org.apache.dolphinscheduler.remote.processor.NettyRemoteChannel;
+import org.apache.dolphinscheduler.server.utils.LogUtils;
 import org.apache.dolphinscheduler.service.queue.entity.TaskExecutionContext;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,7 +61,6 @@ public class TaskCallbackService {
     public TaskCallbackService() {
         final NettyClientConfig clientConfig = new NettyClientConfig();
         this.nettyRemotingClient = new NettyRemotingClient(clientConfig);
-        this.nettyRemotingClient.registerProcessor(CommandType.DB_TASK_ACK, new DBTaskAckProcessor());
         this.nettyRemotingClient.registerProcessor(CommandType.DB_TASK_RESPONSE, new DBTaskResponseProcessor());
     }
 
@@ -130,52 +131,16 @@ public class TaskCallbackService {
     }
 
     /**
-     * send ack
-     *
-     * @param taskInstanceId taskInstanceId
-     * @param command        command
-     */
-    public void sendAck(int taskInstanceId, Command command) {
-        NettyRemoteChannel nettyRemoteChannel = getRemoteChannel(taskInstanceId);
-        if (nettyRemoteChannel != null) {
-            nettyRemoteChannel.writeAndFlush(command);
-        }
-    }
-
-    /**
-     * send result
-     *
-     * @param taskInstanceId taskInstanceId
-     * @param command        command
-     */
-    public void sendResult(int taskInstanceId, Command command) {
-        NettyRemoteChannel nettyRemoteChannel = getRemoteChannel(taskInstanceId);
-        if (nettyRemoteChannel != null) {
-            nettyRemoteChannel.writeAndFlush(command).addListener(new ChannelFutureListener() {
-
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    if (future.isSuccess()) {
-                        // remove(taskInstanceId);
-                        return;
-                    }
-                }
-            });
-        }
-    }
-
-    /**
      * feedback task info to master
      * @param taskExecutionContext
      */
     public void feedback(TaskExecutionContext taskExecutionContext) {
         NettyRemoteChannel nettyRemoteChannel = getRemoteChannel(taskExecutionContext.getTaskInstanceId());
 
-        //TODO
-        Command command = null;
+        TaskExecuteResponseCommand command = buildResponseCommand(taskExecutionContext);
 
         if (nettyRemoteChannel != null) {
-            nettyRemoteChannel.writeAndFlush(command).addListener(new ChannelFutureListener() {
+            nettyRemoteChannel.writeAndFlush(command.convert2Command()).addListener(new ChannelFutureListener() {
 
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -186,5 +151,34 @@ public class TaskCallbackService {
                 }
             });
         }
+    }
+
+    /**
+     * build response command
+     *
+     * @param taskExecutionContext taskExecutionContext
+     * @return TaskExecuteResponseCommand
+     */
+    private TaskExecuteResponseCommand buildResponseCommand(TaskExecutionContext taskExecutionContext) {
+        TaskExecuteResponseCommand command = new TaskExecuteResponseCommand();
+        command.setProcessInstanceId(taskExecutionContext.getProcessInstanceId());
+        command.setTaskInstanceId(taskExecutionContext.getTaskInstanceId());
+        command.setStatus(taskExecutionContext.getCurrentExecutionStatus().getCode());
+        command.setLogPath(LogUtils.getTaskLogPath(taskExecutionContext));
+        command.setExecutePath(taskExecutionContext.getExecutePath());
+        command.setAppIds(taskExecutionContext.getAppIds());
+        command.setProcessId(taskExecutionContext.getProcessId());
+        command.setHost(taskExecutionContext.getHost());
+        command.setStartTime(taskExecutionContext.getStartTime());
+        command.setEndTime(taskExecutionContext.getEndTime());
+        command.setVarPool(taskExecutionContext.getVarPool());
+
+        if (TaskType.SQL.getDesc().equalsIgnoreCase(taskExecutionContext.getTaskType()) || TaskType.PROCEDURE.getDesc().equalsIgnoreCase(taskExecutionContext.getTaskType())) {
+            command.setExecutePath(null);
+        } else {
+            command.setExecutePath(taskExecutionContext.getExecutePath());
+        }
+
+        return command;
     }
 }

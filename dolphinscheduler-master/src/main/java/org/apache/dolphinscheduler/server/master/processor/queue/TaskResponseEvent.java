@@ -17,7 +17,6 @@
 
 package org.apache.dolphinscheduler.server.master.processor.queue;
 
-
 import org.apache.dolphinscheduler.common.enums.Event;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 
@@ -91,27 +90,6 @@ public class TaskResponseEvent {
     private Channel channel;
 
     private int processInstanceId;
-    
-    public static TaskResponseEvent newAck(ExecutionStatus state,
-                                           Date startTime,
-                                           String workerAddress,
-                                           String executePath,
-                                           String logPath,
-                                           int taskInstanceId,
-                                           Channel channel,
-                                           int processInstanceId) {
-        TaskResponseEvent event = new TaskResponseEvent();
-        event.setState(state);
-        event.setStartTime(startTime);
-        event.setWorkerAddress(workerAddress);
-        event.setExecutePath(executePath);
-        event.setLogPath(logPath);
-        event.setTaskInstanceId(taskInstanceId);
-        event.setEvent(Event.ACK);
-        event.setChannel(channel);
-        event.setProcessInstanceId(processInstanceId);
-        return event;
-    }
 
     public static TaskResponseEvent newResult(ExecutionStatus state,
                                               Date endTime,
@@ -141,7 +119,7 @@ public class TaskResponseEvent {
     public void setVarPool(String varPool) {
         this.varPool = varPool;
     }
-    
+
     public int getTaskInstanceId() {
         return taskInstanceId;
     }

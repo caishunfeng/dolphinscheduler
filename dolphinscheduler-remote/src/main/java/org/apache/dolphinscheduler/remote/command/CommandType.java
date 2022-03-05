@@ -69,19 +69,9 @@ public enum CommandType {
     TASK_EXECUTE_REQUEST,
 
     /**
-     * execute task ack
-     */
-    TASK_EXECUTE_ACK,
-
-    /**
      * execute task response
      */
     TASK_EXECUTE_RESPONSE,
-
-    /**
-     * db task ack
-     */
-    DB_TASK_ACK,
 
     /**
      * db task response

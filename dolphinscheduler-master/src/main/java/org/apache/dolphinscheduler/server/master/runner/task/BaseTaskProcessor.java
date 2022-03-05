@@ -269,8 +269,7 @@ public abstract class BaseTaskProcessor implements ITaskProcessor {
             processService.changeTaskState(taskInstance, ExecutionStatus.FAILURE,
                     taskInstance.getStartTime(),
                     taskInstance.getHost(),
-                    null,
-                    null);
+                    null, null, null, 0, null, null);
             return null;
         }
         // set queue for process instance, user-specified queue takes precedence over tenant queue

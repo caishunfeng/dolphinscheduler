@@ -60,15 +60,6 @@ public class TaskResponseServiceTest {
     public void before() {
         taskRspService.start();
 
-        ackEvent = TaskResponseEvent.newAck(ExecutionStatus.RUNNING_EXECUTION,
-                new Date(),
-                "127.*.*.*",
-                "path",
-                "logPath",
-                22,
-                channel,
-                1);
-
         resultEvent = TaskResponseEvent.newResult(ExecutionStatus.SUCCESS,
                 new Date(),
                 1,

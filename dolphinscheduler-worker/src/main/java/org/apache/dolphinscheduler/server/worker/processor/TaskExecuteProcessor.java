@@ -18,9 +18,7 @@
 package org.apache.dolphinscheduler.server.worker.processor;
 
 import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.Event;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
-import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.common.utils.CommonUtils;
 import org.apache.dolphinscheduler.common.utils.DateUtils;
 import org.apache.dolphinscheduler.common.utils.FileUtils;
@@ -29,22 +27,17 @@ import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.common.utils.OSUtils;
 import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.CommandType;
-import org.apache.dolphinscheduler.remote.command.TaskExecuteAckCommand;
 import org.apache.dolphinscheduler.remote.command.TaskExecuteRequestCommand;
 import org.apache.dolphinscheduler.remote.processor.NettyRemoteChannel;
 import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
 import org.apache.dolphinscheduler.server.utils.LogUtils;
-import org.apache.dolphinscheduler.server.worker.cache.ResponseCache;
 import org.apache.dolphinscheduler.server.worker.cache.TaskExecuteThreadCacheManager;
-import org.apache.dolphinscheduler.server.worker.cache.TaskExecutionContextCacheManager;
 import org.apache.dolphinscheduler.server.worker.config.WorkerConfig;
 import org.apache.dolphinscheduler.server.worker.plugin.TaskPluginManager;
 import org.apache.dolphinscheduler.server.worker.runner.TaskExecuteThread;
 import org.apache.dolphinscheduler.server.worker.runner.WorkerManagerThread;
 import org.apache.dolphinscheduler.service.alert.AlertClientService;
 import org.apache.dolphinscheduler.service.queue.entity.TaskExecutionContext;
-import org.apache.dolphinscheduler.spi.task.TaskExecutionContextCacheManager;
-import org.apache.dolphinscheduler.spi.task.request.TaskRequest;
 
 import java.util.Date;
 
@@ -137,8 +130,9 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
                 }
             } catch (Throwable ex) {
                 logger.error("create execLocalPath: {}", execLocalPath, ex);
-                // todo error finish
-                TaskExecutionContextCacheManager.removeByTaskInstanceId(taskExecutionContext.getTaskInstanceId());
+                taskExecutionContext.setCurrentExecutionStatus(ExecutionStatus.FAILURE);
+                taskExecutionContext.setEndTime(DateUtils.getCurrentDate());
+                taskCallbackService.feedback(taskExecutionContext);
             }
         }
 
@@ -153,49 +147,17 @@ public class TaskExecuteProcessor implements NettyRequestProcessor {
             taskExecutionContext.setStartTime(new Date());
         }
 
-        this.doAck(taskExecutionContext);
-
         // submit task to manager
         TaskExecuteThread taskExecuteThread = new TaskExecuteThread(taskExecutionContext, taskCallbackService, alertClientService, taskPluginManager);
         boolean offer = workerManager.offer(taskExecuteThread);
-        if (!offer) {
-            logger.info("submit task to manager error, queue is full, queue size is {}", workerManager.getDelayQueueSize());
-            // todo error finish
-            return;
-        }
-
-        taskExecuteThreadCacheManager.cache(taskExecuteThread);
-    }
-
-    private void doAck(TaskExecutionContext taskExecutionContext) {
-        // tell master that task is in executing
-        TaskExecuteAckCommand ackCommand = buildAckCommand(taskExecutionContext);
-        ResponseCache.get().cache(taskExecutionContext.getTaskInstanceId(), ackCommand.convert2Command(), Event.ACK);
-        taskCallbackService.sendAck(taskExecutionContext.getTaskInstanceId(), ackCommand.convert2Command());
-    }
-
-    /**
-     * build ack command
-     *
-     * @param taskExecutionContext taskExecutionContext
-     * @return TaskExecuteAckCommand
-     */
-    private TaskExecuteAckCommand buildAckCommand(TaskExecutionContext taskExecutionContext) {
-        TaskExecuteAckCommand ackCommand = new TaskExecuteAckCommand();
-        ackCommand.setTaskInstanceId(taskExecutionContext.getTaskInstanceId());
-        ackCommand.setStatus(taskExecutionContext.getCurrentExecutionStatus().getCode());
-        ackCommand.setLogPath(LogUtils.getTaskLogPath(taskExecutionContext));
-        ackCommand.setHost(taskExecutionContext.getHost());
-        ackCommand.setStartTime(taskExecutionContext.getStartTime());
-        if (TaskType.SQL.getDesc().equalsIgnoreCase(taskExecutionContext.getTaskType()) || TaskType.PROCEDURE.getDesc().equalsIgnoreCase(taskExecutionContext.getTaskType())) {
-            ackCommand.setExecutePath(null);
+        if (offer) {
+            taskExecuteThreadCacheManager.cache(taskExecuteThread);
         } else {
-            ackCommand.setExecutePath(taskExecutionContext.getExecutePath());
+            logger.info("submit task to manager error, queue is full, queue size is {}", workerManager.getDelayQueueSize());
+            taskExecutionContext.setCurrentExecutionStatus(ExecutionStatus.FAILURE);
+            taskExecutionContext.setEndTime(DateUtils.getCurrentDate());
+            taskCallbackService.feedback(taskExecutionContext);
         }
-        taskExecutionContext.setLogPath(ackCommand.getLogPath());
-        ackCommand.setProcessInstanceId(taskExecutionContext.getProcessInstanceId());
-
-        return ackCommand;
     }
 
     /**

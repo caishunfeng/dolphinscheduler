@@ -101,7 +101,7 @@ public class PythonTask extends AbstractTaskExecutor {
     }
 
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         try {
             // generate the content of this python script
             String pythonScriptContent = buildPythonScriptContent();
@@ -112,7 +112,20 @@ public class PythonTask extends AbstractTaskExecutor {
             createPythonCommandFileIfNotExists(pythonScriptContent,pythonScriptFile);
             String command = buildPythonExecuteCommand(pythonScriptFile);
 
-            TaskResponse taskResponse = shellCommandExecutor.run(command);
+            TaskResponse taskResponse = shellCommandExecutor.startProcess(command);
+            setAppIds(taskResponse.getAppIds());
+            setProcessId(taskResponse.getProcessId());
+        } catch (Exception e) {
+            logger.error("python task failure", e);
+            setExitStatusCode(TaskConstants.EXIT_CODE_FAILURE);
+            throw new TaskException("run python task error", e);
+        }
+    }
+
+    @Override
+    public void handle() throws Exception {
+        try {
+            TaskResponse taskResponse = shellCommandExecutor.run();
             setExitStatusCode(taskResponse.getExitStatusCode());
             setAppIds(taskResponse.getAppIds());
             setProcessId(taskResponse.getProcessId());

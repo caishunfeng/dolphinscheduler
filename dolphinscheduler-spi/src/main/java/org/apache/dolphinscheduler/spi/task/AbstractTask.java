@@ -84,6 +84,13 @@ public abstract class AbstractTask {
     }
 
     /**
+     * task start
+     *
+     * @throws Exception exception
+     */
+    public abstract void start() throws Exception;
+
+    /**
      * task handle
      *
      * @throws Exception exception

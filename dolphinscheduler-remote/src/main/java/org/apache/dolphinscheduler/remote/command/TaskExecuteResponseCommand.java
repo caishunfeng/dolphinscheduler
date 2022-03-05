@@ -50,6 +50,26 @@ public class TaskExecuteResponseCommand implements Serializable {
      */
     private int status;
 
+    /**
+     * startTime
+     */
+    private Date startTime;
+
+    /**
+     * host
+     */
+    private String host;
+
+    /**
+     * logPath
+     */
+    private String logPath;
+
+    /**
+     * executePath
+     */
+    private String executePath;
+
 
     /**
      *  end time
@@ -120,6 +140,46 @@ public class TaskExecuteResponseCommand implements Serializable {
         this.appIds = appIds;
     }
 
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getLogPath() {
+        return logPath;
+    }
+
+    public void setLogPath(String logPath) {
+        this.logPath = logPath;
+    }
+
+    public String getExecutePath() {
+        return executePath;
+    }
+
+    public void setExecutePath(String executePath) {
+        this.executePath = executePath;
+    }
+
+    public int getProcessInstanceId() {
+        return processInstanceId;
+    }
+
+    public void setProcessInstanceId(int processInstanceId) {
+        this.processInstanceId = processInstanceId;
+    }
+
     /**
      * package response command
      * @return command
@@ -136,18 +196,16 @@ public class TaskExecuteResponseCommand implements Serializable {
     public String toString() {
         return "TaskExecuteResponseCommand{"
                 + "taskInstanceId=" + taskInstanceId
+                + ", processInstanceId='" + processInstanceId + '\''
+                + ", startTime=" + startTime
+                + ", host='" + host + '\''
+                + ", status=" + status
+                + ", logPath='" + logPath + '\''
+                + ", executePath='" + executePath + '\''
                 + ", status=" + status
                 + ", endTime=" + endTime
                 + ", processId=" + processId
                 + ", appIds='" + appIds + '\''
                 + '}';
-    }
-
-    public int getProcessInstanceId() {
-        return processInstanceId;
-    }
-
-    public void setProcessInstanceId(int processInstanceId) {
-        this.processInstanceId = processInstanceId;
     }
 }

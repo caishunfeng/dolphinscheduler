@@ -90,11 +90,23 @@ public class SeatunnelTask extends AbstractTaskExecutor {
     }
 
     @Override
+    public void start() throws Exception {
+        try {
+            String command = buildCommand();
+            TaskResponse commandExecuteResult = shellCommandExecutor.startProcess(command);
+            setAppIds(commandExecuteResult.getAppIds());
+            setProcessId(commandExecuteResult.getProcessId());
+        } catch (Exception e) {
+            logger.error("seatunnel task error", e);
+            setExitStatusCode(EXIT_CODE_FAILURE);
+            throw e;
+        }
+    }
+
+    @Override
     public void handle() throws Exception {
         try {
-            // construct process
-            String command = buildCommand();
-            TaskResponse commandExecuteResult = shellCommandExecutor.run(command);
+            TaskResponse commandExecuteResult = shellCommandExecutor.run();
             setExitStatusCode(commandExecuteResult.getExitStatusCode());
             setAppIds(commandExecuteResult.getAppIds());
             setProcessId(commandExecuteResult.getProcessId());

@@ -42,10 +42,22 @@ public abstract class AbstractYarnTask extends AbstractTaskExecutor {
     }
 
     @Override
+    public void start() throws Exception {
+        try {
+            TaskResponse response = shellCommandExecutor.startProcess(buildCommand());
+            setAppIds(response.getAppIds());
+            setProcessId(response.getProcessId());
+        } catch (Exception e) {
+            logger.error("yarn process failure", e);
+            exitStatusCode = -1;
+            throw e;
+        }
+    }
+
+    @Override
     public void handle() throws Exception {
         try {
-            // SHELL task exit code
-            TaskResponse response = shellCommandExecutor.run(buildCommand());
+            TaskResponse response = shellCommandExecutor.run();
             setExitStatusCode(response.getExitStatusCode());
             setAppIds(response.getAppIds());
             setProcessId(response.getProcessId());

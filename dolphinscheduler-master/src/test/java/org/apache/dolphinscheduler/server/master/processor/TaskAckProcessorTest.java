@@ -17,7 +17,6 @@
 
 package org.apache.dolphinscheduler.server.master.processor;
 
-import org.apache.dolphinscheduler.remote.command.TaskExecuteAckCommand;
 import org.apache.dolphinscheduler.server.master.processor.queue.TaskResponseEvent;
 import org.apache.dolphinscheduler.server.master.processor.queue.TaskResponseService;
 import org.apache.dolphinscheduler.service.bean.SpringApplicationContext;
@@ -44,7 +43,6 @@ public class TaskAckProcessorTest {
     private TaskAckProcessor taskAckProcessor;
     private TaskResponseService taskResponseService;
     private ProcessService processService;
-    private TaskExecuteAckCommand taskExecuteAckCommand;
     private TaskResponseEvent taskResponseEvent;
     private Channel channel;
 

@@ -33,7 +33,6 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
 
-
 /**
  * master/worker task transport
  */
@@ -243,6 +242,11 @@ public class TaskExecutionContext implements Serializable {
      * business param
      */
     private Map<String, Property> paramsMap;
+
+    /**
+     * endTime
+     */
+    private Date endTime;
 
     public Map<String, Property> getParamsMap() {
         return paramsMap;
@@ -575,6 +579,14 @@ public class TaskExecutionContext implements Serializable {
         this.dryRun = dryRun;
     }
 
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
+
     @Override
     public String toString() {
         return "TaskExecutionContext{"
@@ -583,6 +595,7 @@ public class TaskExecutionContext implements Serializable {
                 + ", currentExecutionStatus=" + currentExecutionStatus
                 + ", firstSubmitTime=" + firstSubmitTime
                 + ", startTime=" + startTime
+                + ", endTime=" + endTime
                 + ", taskType='" + taskType + '\''
                 + ", host='" + host + '\''
                 + ", executePath='" + executePath + '\''

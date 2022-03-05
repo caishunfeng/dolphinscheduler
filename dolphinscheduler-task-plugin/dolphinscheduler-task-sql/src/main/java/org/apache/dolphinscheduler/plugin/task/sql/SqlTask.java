@@ -113,7 +113,7 @@ public class SqlTask extends AbstractTaskExecutor {
     }
 
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         logger.info("Full sql parameters: {}", sqlParameters);
         logger.info("sql type : {}, datasource : {}, sql : {} , localParams : {},udfs : {},showType : {},connParams : {},varPool : {} ,query max result limit  {}",
                 sqlParameters.getType(),
@@ -160,6 +160,9 @@ public class SqlTask extends AbstractTaskExecutor {
             throw e;
         }
     }
+
+    @Override
+    public void handle() throws Exception {}
 
     /**
      * execute function and sql

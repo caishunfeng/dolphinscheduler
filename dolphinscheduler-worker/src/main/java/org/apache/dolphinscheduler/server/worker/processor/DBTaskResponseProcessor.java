@@ -23,10 +23,11 @@ import org.apache.dolphinscheduler.remote.command.Command;
 import org.apache.dolphinscheduler.remote.command.CommandType;
 import org.apache.dolphinscheduler.remote.command.DBTaskResponseCommand;
 import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
-import org.apache.dolphinscheduler.server.worker.cache.ResponseCache;
+import org.apache.dolphinscheduler.server.worker.cache.TaskExecuteThreadCacheManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -34,34 +35,34 @@ import com.google.common.base.Preconditions;
 import io.netty.channel.Channel;
 
 /**
- *  db task response processor
+ * db task response processor
  */
 @Component
 public class DBTaskResponseProcessor implements NettyRequestProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(DBTaskResponseProcessor.class);
 
+    @Autowired
+    private TaskExecuteThreadCacheManager taskExecuteThreadCacheManager;
+
     @Override
     public void process(Channel channel, Command command) {
         Preconditions.checkArgument(CommandType.DB_TASK_RESPONSE == command.getType(),
                 String.format("invalid command type : %s", command.getType()));
 
-        DBTaskResponseCommand taskResponseCommand = JSONUtils.parseObject(
+        DBTaskResponseCommand dbTaskResponseCommand = JSONUtils.parseObject(
                 command.getBody(), DBTaskResponseCommand.class);
 
-        if (taskResponseCommand == null) {
+        if (dbTaskResponseCommand == null) {
             logger.error("dBTask Response  command is null");
             return;
         }
-        logger.info("dBTask Response command : {}", taskResponseCommand);
+        logger.info("dBTask Response command : {}", dbTaskResponseCommand);
 
-
-        if (taskResponseCommand.getStatus() == ExecutionStatus.SUCCESS.getCode()) {
-            ResponseCache.get().removeResponseCache(taskResponseCommand.getTaskInstanceId());
-            TaskCallbackService.remove(taskResponseCommand.getTaskInstanceId());
-            logger.debug("remove REMOTE_CHANNELS, task instance id:{}", taskResponseCommand.getTaskInstanceId());
+        if (dbTaskResponseCommand.getStatus() == ExecutionStatus.SUCCESS.getCode()) {
+            taskExecuteThreadCacheManager.remove(dbTaskResponseCommand.getTaskInstanceId());
+            TaskCallbackService.remove(dbTaskResponseCommand.getTaskInstanceId());
+            logger.debug("remove REMOTE_CHANNELS, task instance id:{}", dbTaskResponseCommand.getTaskInstanceId());
         }
     }
-
-
 }

@@ -80,7 +80,7 @@ public class ProcedureTask extends AbstractTaskExecutor {
     }
 
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         logger.info("procedure type : {}, datasource : {}, method : {} , localParams : {}",
                 procedureParameters.getType(),
                 procedureParameters.getDatasource(),
@@ -124,6 +124,9 @@ public class ProcedureTask extends AbstractTaskExecutor {
             close(stmt, connection);
         }
     }
+
+    @Override
+    public void handle() throws Exception {}
 
     private String formatSql(Map<Integer, Property> sqlParamsMap, Map<String, Property> paramsMap) {
         // combining local and global parameters

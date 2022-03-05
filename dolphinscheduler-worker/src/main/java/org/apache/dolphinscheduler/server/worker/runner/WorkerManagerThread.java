@@ -85,7 +85,7 @@ public class WorkerManagerThread implements Runnable {
      * then send Response to Master, update the execution status of task instance
      */
     public void killTaskBeforeExecuteByInstanceId(TaskExecuteThread taskExecuteThread) {
-        Integer taskInstanceId = taskExecuteThread.getTaskExecutionContext().getTaskInstanceId();
+        int taskInstanceId = taskExecuteThread.getTaskExecutionContext().getTaskInstanceId();
         workerExecuteQueue.stream()
                 .filter(t -> t.getTaskExecutionContext().getTaskInstanceId() == taskInstanceId)
                 .forEach(workerExecuteQueue::remove);
@@ -97,9 +97,8 @@ public class WorkerManagerThread implements Runnable {
      */
     private void sendTaskKillResponse(TaskExecuteThread taskExecuteThread) {
         TaskExecutionContext taskExecutionContext = taskExecuteThread.getTaskExecutionContext();
-        TaskExecuteResponseCommand responseCommand = new TaskExecuteResponseCommand(taskExecutionContext.getTaskInstanceId(), taskExecutionContext.getProcessInstanceId());
-        responseCommand.setStatus(ExecutionStatus.KILL.getCode());
-        taskCallbackService.sendResult(taskExecutionContext.getTaskInstanceId(), responseCommand.convert2Command());
+        taskExecutionContext.setCurrentExecutionStatus(ExecutionStatus.KILL);
+        taskCallbackService.feedback(taskExecutionContext);
     }
 
     /**

@@ -138,12 +138,11 @@ public class DataxTask extends AbstractTaskExecutor {
     }
 
     /**
-     * run DataX process
-     *
-     * @throws Exception if error throws Exception
+     * start DataX process
+     * @throws Exception
      */
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         try {
             // replace placeholder,and combine local and global parameters
             Map<String, Property> paramsMap = ParamUtils.convert(taskExecutionContext, getParameters());
@@ -157,8 +156,24 @@ public class DataxTask extends AbstractTaskExecutor {
             // run datax procesDataSourceService.s
             String jsonFilePath = buildDataxJsonFile(paramsMap);
             String shellCommandFilePath = buildShellCommandFile(jsonFilePath, paramsMap);
-            TaskResponse commandExecuteResult = shellCommandExecutor.run(shellCommandFilePath);
+            TaskResponse commandExecuteResult = shellCommandExecutor.startProcess(shellCommandFilePath);
+            setAppIds(commandExecuteResult.getAppIds());
+            setProcessId(commandExecuteResult.getProcessId());
+        } catch (Exception e) {
+            setExitStatusCode(EXIT_CODE_FAILURE);
+            throw e;
+        }
+    }
 
+    /**
+     * run DataX process
+     *
+     * @throws Exception if error throws Exception
+     */
+    @Override
+    public void handle() throws Exception {
+        try {
+            TaskResponse commandExecuteResult = shellCommandExecutor.run();
             setExitStatusCode(commandExecuteResult.getExitStatusCode());
             setAppIds(commandExecuteResult.getAppIds());
             setProcessId(commandExecuteResult.getProcessId());

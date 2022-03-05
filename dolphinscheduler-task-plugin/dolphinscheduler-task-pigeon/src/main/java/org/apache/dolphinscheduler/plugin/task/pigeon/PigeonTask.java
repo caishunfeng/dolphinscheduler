@@ -74,7 +74,7 @@ public class PigeonTask extends AbstractTaskExecutor {
     }
 
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         // Trigger PIGEON DataX pipeline
         logger.info("start execute PIGEON task");
         long startTime = System.currentTimeMillis();
@@ -152,6 +152,9 @@ public class PigeonTask extends AbstractTaskExecutor {
             }
         }
     }
+
+    @Override
+    public void handle() throws Exception {}
 
     private void addFormUrlencoded(HttpPost post) {
         post.addHeader("content-type", "application/x-www-form-urlencoded");

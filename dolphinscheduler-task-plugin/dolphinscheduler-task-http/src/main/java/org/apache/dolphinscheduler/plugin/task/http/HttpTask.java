@@ -89,7 +89,7 @@ public class HttpTask extends AbstractTaskExecutor {
     }
 
     @Override
-    public void handle() throws Exception {
+    public void start() throws Exception {
         long startTime = System.currentTimeMillis();
         String formatTimeStamp = DateUtils.formatTimeStamp(startTime);
         String statusCode = null;
@@ -110,8 +110,10 @@ public class HttpTask extends AbstractTaskExecutor {
             logger.error("httpUrl[" + httpParameters.getUrl() + "] connection failed：" + output, e);
             throw e;
         }
-
     }
+
+    @Override
+    public void handle() throws Exception {}
 
     /**
      * send request

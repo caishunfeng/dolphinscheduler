@@ -1781,29 +1781,6 @@ public class ProcessService {
     }
 
     /**
-     * change task state
-     *
-     * @param state state
-     * @param startTime startTime
-     * @param host host
-     * @param executePath executePath
-     * @param logPath logPath
-     */
-    public void changeTaskState(TaskInstance taskInstance,
-                                ExecutionStatus state,
-                                Date startTime,
-                                String host,
-                                String executePath,
-                                String logPath) {
-        taskInstance.setState(state);
-        taskInstance.setStartTime(startTime);
-        taskInstance.setHost(host);
-        taskInstance.setExecutePath(executePath);
-        taskInstance.setLogPath(logPath);
-        saveTaskInstance(taskInstance);
-    }
-
-    /**
      * update process instance
      *
      * @param processInstance processInstance
@@ -1821,13 +1798,21 @@ public class ProcessService {
      * @param varPool varPool
      */
     public void changeTaskState(TaskInstance taskInstance, ExecutionStatus state,
+                                Date startTime,
+                                String host,
+                                String executePath,
+                                String logPath,
                                 Date endTime,
                                 int processId,
                                 String appIds,
                                 String varPool) {
+        taskInstance.setState(state);
+        taskInstance.setStartTime(startTime);
+        taskInstance.setHost(host);
+        taskInstance.setExecutePath(executePath);
+        taskInstance.setLogPath(logPath);
         taskInstance.setPid(processId);
         taskInstance.setAppLink(appIds);
-        taskInstance.setState(state);
         taskInstance.setEndTime(endTime);
         taskInstance.setVarPool(varPool);
         changeOutParam(taskInstance);

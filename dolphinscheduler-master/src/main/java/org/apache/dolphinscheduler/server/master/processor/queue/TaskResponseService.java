@@ -23,7 +23,6 @@ import org.apache.dolphinscheduler.common.enums.StateEvent;
 import org.apache.dolphinscheduler.common.enums.StateEventType;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
-import org.apache.dolphinscheduler.remote.command.DBTaskAckCommand;
 import org.apache.dolphinscheduler.remote.command.DBTaskResponseCommand;
 import org.apache.dolphinscheduler.server.master.cache.ProcessInstanceExecCacheManager;
 import org.apache.dolphinscheduler.server.master.runner.WorkflowExecuteThread;
@@ -165,9 +164,6 @@ public class TaskResponseService {
         }
 
         switch (event) {
-            case ACK:
-                handleAckEvent(taskResponseEvent, taskInstance);
-                break;
             case RESULT:
                 handleResultEvent(taskResponseEvent, taskInstance);
                 break;
@@ -186,30 +182,30 @@ public class TaskResponseService {
     /**
      * handle ack event
      */
-    private void handleAckEvent(TaskResponseEvent taskResponseEvent, TaskInstance taskInstance) {
-        Channel channel = taskResponseEvent.getChannel();
-        try {
-            if (taskInstance != null) {
-                if (taskInstance.getState().typeIsFinished()) {
-                    logger.warn("task is finish, ack is meaningless, taskInstanceId:{}, state:{}", taskInstance.getId(), taskInstance.getState());
-                } else {
-                    processService.changeTaskState(taskInstance, taskResponseEvent.getState(),
-                            taskResponseEvent.getStartTime(),
-                            taskResponseEvent.getWorkerAddress(),
-                            taskResponseEvent.getExecutePath(),
-                            taskResponseEvent.getLogPath()
-                    );
-                }
-            }
-            // if taskInstance is null (maybe deleted) or finish. retry will be meaningless . so ack success
-            DBTaskAckCommand taskAckCommand = new DBTaskAckCommand(ExecutionStatus.SUCCESS.getCode(), taskResponseEvent.getTaskInstanceId());
-            channel.writeAndFlush(taskAckCommand.convert2Command());
-        } catch (Exception e) {
-            logger.error("worker ack master error", e);
-            DBTaskAckCommand taskAckCommand = new DBTaskAckCommand(ExecutionStatus.FAILURE.getCode(), -1);
-            channel.writeAndFlush(taskAckCommand.convert2Command());
-        }
-    }
+//    private void handleAckEvent(TaskResponseEvent taskResponseEvent, TaskInstance taskInstance) {
+//        Channel channel = taskResponseEvent.getChannel();
+//        try {
+//            if (taskInstance != null) {
+//                if (taskInstance.getState().typeIsFinished()) {
+//                    logger.warn("task is finish, ack is meaningless, taskInstanceId:{}, state:{}", taskInstance.getId(), taskInstance.getState());
+//                } else {
+//                    processService.changeTaskState(taskInstance, taskResponseEvent.getState(),
+//                            taskResponseEvent.getStartTime(),
+//                            taskResponseEvent.getWorkerAddress(),
+//                            taskResponseEvent.getExecutePath(),
+//                            taskResponseEvent.getLogPath()
+//                    );
+//                }
+//            }
+//            // if taskInstance is null (maybe deleted) or finish. retry will be meaningless . so ack success
+//            DBTaskAckCommand taskAckCommand = new DBTaskAckCommand(ExecutionStatus.SUCCESS.getCode(), taskResponseEvent.getTaskInstanceId());
+//            channel.writeAndFlush(taskAckCommand.convert2Command());
+//        } catch (Exception e) {
+//            logger.error("worker ack master error", e);
+//            DBTaskAckCommand taskAckCommand = new DBTaskAckCommand(ExecutionStatus.FAILURE.getCode(), -1);
+//            channel.writeAndFlush(taskAckCommand.convert2Command());
+//        }
+//    }
 
     /**
      * handle result event
@@ -221,6 +217,10 @@ public class TaskResponseService {
                 dataQualityResultOperator.operateDqExecuteResult(taskResponseEvent, taskInstance);
 
                 processService.changeTaskState(taskInstance, taskResponseEvent.getState(),
+                        taskResponseEvent.getStartTime(),
+                        taskResponseEvent.getWorkerAddress(),
+                        taskResponseEvent.getExecutePath(),
+                        taskResponseEvent.getLogPath(),
                         taskResponseEvent.getEndTime(),
                         taskResponseEvent.getProcessId(),
                         taskResponseEvent.getAppIds(),

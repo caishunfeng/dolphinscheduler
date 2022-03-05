@@ -92,15 +92,27 @@ public class ShellTask extends AbstractTaskExecutor {
     @Override
     public void handle() throws Exception {
         try {
-            // construct process
-            String command = buildCommand();
-            TaskResponse commandExecuteResult = shellCommandExecutor.run(command);
+            TaskResponse commandExecuteResult = shellCommandExecutor.run();
             setExitStatusCode(commandExecuteResult.getExitStatusCode());
             setAppIds(commandExecuteResult.getAppIds());
             setProcessId(commandExecuteResult.getProcessId());
             shellParameters.dealOutParam(shellCommandExecutor.getVarPool());
         } catch (Exception e) {
-            logger.error("shell task error", e);
+            logger.error("shell task handle error", e);
+            setExitStatusCode(EXIT_CODE_FAILURE);
+            throw e;
+        }
+    }
+
+    @Override
+    public void start() throws Exception {
+        try {
+            String command = buildCommand();
+            TaskResponse taskResponse = shellCommandExecutor.startProcess(command);
+            setAppIds(taskResponse.getAppIds());
+            setProcessId(taskResponse.getProcessId());
+        } catch (Exception e) {
+            logger.error("shell task start error", e);
             setExitStatusCode(EXIT_CODE_FAILURE);
             throw e;
         }
@@ -144,7 +156,7 @@ public class ShellTask extends AbstractTaskExecutor {
         if (OSUtils.isWindows()) {
             Files.createFile(path);
         } else {
-            if (!file.getParentFile().exists()){
+            if (!file.getParentFile().exists()) {
                 file.getParentFile().mkdirs();
             }
             Files.createFile(path, attr);
@@ -162,7 +174,7 @@ public class ShellTask extends AbstractTaskExecutor {
 
     private String parseScript(String script) {
         // combining local and global parameters
-        Map<String, Property> paramsMap = ParamUtils.convert(taskExecutionContext,getParameters());
+        Map<String, Property> paramsMap = ParamUtils.convert(taskExecutionContext, getParameters());
         if (MapUtils.isEmpty(paramsMap)) {
             paramsMap = new HashMap<>();
         }
